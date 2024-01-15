@@ -1,5 +1,6 @@
 package Producer
 
 fun main(args: Array<String>) {
-    Consumer.Consumer.instance.collectData()
+    Thread.sleep(1000)
+    Consumer.Consumer.instance.collectDataOnEventTimestamp()
 }

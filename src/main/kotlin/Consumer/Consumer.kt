@@ -2,6 +2,7 @@ package Consumer
 
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import java.time.Duration
+import java.time.Instant
 import java.util.*
 
 data class SensorData(val timestamp: String,val sensorID: String, val sensorValue: List<Double>)
@@ -25,7 +26,28 @@ class Consumer {
         consumer.subscribe(mutableListOf(topic))
     }
 
-    fun collectData(){
+    fun collectDataOnEventTimestamp(){
+        consumer.seekToBeginning(consumer.assignment())
+        val sensorDataList = mutableListOf<SensorData>()
+        while(true){
+            val records = consumer.poll(Duration.ofSeconds(1))
+            for (record in records){
+                val parts = record.value().split(";")
+                sensorDataList.add(SensorData(parts[0],parts[1],parts.drop(2).map { it.toDouble() }))
+                println("Topic: ${record.topic()}, Partition: ${record.partition()}, Offset: ${record.offset()}, Key: ${record.key()}, Value: ${record.value()}")
+            }
+            if(sensorDataList.isEmpty()) continue
+            val startTimestamp = Instant.parse(sensorDataList[0].timestamp)
+            if(startTimestamp.plusSeconds(30) < Instant.now()){
+                val average = sensorDataList.groupBy { it.sensorID }.mapValues {(_, sensorDataList) -> sensorDataList.flatMap { it.sensorValue }.average() }
+                println(average)
+                sensorDataList.clear()
+            }
+        }
+
+    }
+
+    fun collectDataRealTime(){
         while(true){
             consumer.paused()
             Thread.sleep(Duration.ofSeconds(30))
