@@ -11,6 +11,7 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenCentral()
 }
+val beamVersion = "2.42.0"
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -18,6 +19,8 @@ dependencies {
     implementation("org.apache.kafka:kafka_2.13:3.6.0")
     implementation("org.apache.zookeeper:zookeeper:3.9.1")
     implementation("org.apache.logging.log4j:log4j-core:2.21.1")
+    implementation("org.apache.beam:beam-sdks-java-core:${beamVersion}")
+    implementation("org.apache.beam:beam-runners-direct-java:${beamVersion}")
 }
 
 tasks.test {
