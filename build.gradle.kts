@@ -10,8 +10,9 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven("https://packages.confluent.io/maven/")
 }
-val beamVersion = "2.42.0"
+val beamVersion = "2.53.0"
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -21,6 +22,7 @@ dependencies {
     implementation("org.apache.logging.log4j:log4j-core:2.21.1")
     implementation("org.apache.beam:beam-sdks-java-core:${beamVersion}")
     implementation("org.apache.beam:beam-runners-direct-java:${beamVersion}")
+    implementation("org.apache.beam:beam-sdks-java-io-kafka:${beamVersion}")
 }
 
 tasks.test {
