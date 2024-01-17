@@ -23,7 +23,7 @@ class Producer {
     }
 
     fun sendSensorData(data:String){
-        val record = ProducerRecord(topic,0,"Sensor", data)
+        val record = ProducerRecord(topic,1,"Sensor", data)
         producer.send(record) { metadata, exception ->
             if (exception == null) {
                 println("Nachricht gesendet: Topic=${metadata.topic()}, Partition=${metadata.partition()}, Offset=${metadata.offset()}")

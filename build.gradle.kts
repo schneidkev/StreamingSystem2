@@ -23,6 +23,7 @@ dependencies {
     implementation("org.apache.beam:beam-sdks-java-core:${beamVersion}")
     implementation("org.apache.beam:beam-runners-direct-java:${beamVersion}")
     implementation("org.apache.beam:beam-sdks-java-io-kafka:${beamVersion}")
+
 }
 
 tasks.test {
@@ -30,7 +31,7 @@ tasks.test {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "19"
 }
 
 application {

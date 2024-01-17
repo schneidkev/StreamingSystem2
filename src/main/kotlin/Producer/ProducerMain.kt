@@ -8,7 +8,7 @@ fun main(args: Array<String>) {
 
     val goalTime = Duration.ofSeconds(100).toMillis() + System.currentTimeMillis()
     while(System.currentTimeMillis()<goalTime) {
-        Producer.instance.sendSensorData(generateTestData(10, 3, 0.0, 100.0,1,2, 0.1, 1.0))
+        Producer.instance.sendSensorData(generateTestData(10, 3, 0.0, 100.0,1,2, 0.1, 0.08))
     }
 }
 

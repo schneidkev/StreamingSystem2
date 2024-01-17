@@ -1,0 +1,18 @@
+<configuration>
+    <!-- Set the default log level to INFO for all loggers -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+    <!-- Define the CONSOLE appender for logging to the console -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date{ISO8601} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Set a specific log level for Apache Beam classes -->
+    <logger name="org.apache.beam" level="INFO" />
+
+    <!-- You can add more loggers and appenders as needed -->
+</configuration>
