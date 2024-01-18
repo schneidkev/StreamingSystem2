@@ -13,6 +13,7 @@ repositories {
     maven("https://packages.confluent.io/maven/")
 }
 val beamVersion = "2.53.0"
+val esperVersion = "8.9.0"
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -23,6 +24,9 @@ dependencies {
     implementation("org.apache.beam:beam-sdks-java-core:${beamVersion}")
     implementation("org.apache.beam:beam-runners-direct-java:${beamVersion}")
     implementation("org.apache.beam:beam-sdks-java-io-kafka:${beamVersion}")
+    implementation("com.espertech:esper-common:${esperVersion}")
+    implementation("com.espertech:esper-compiler:${esperVersion}")
+    implementation("com.espertech:esper-runtime:${esperVersion}")
 
 }
 
