@@ -10,7 +10,7 @@ data class SensorData(val timestamp: String,val sensorID: String, val sensorValu
 class Consumer {
     val topic = "Sensoren"
     val bootstrapServers = "localhost:9092"
-    val consumer: KafkaConsumer<String, String>
+    private val consumer: KafkaConsumer<String, String>
     val averageMap: MutableMap<String,MutableMap<String,Double>> = mutableMapOf()
     init{
         val props = Properties()
