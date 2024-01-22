@@ -10,6 +10,7 @@ class Producer {
     val producer: KafkaProducer<String, String>
     val bootstrapServers = "localhost:9092"
     val topic = "Sensoren"
+    val logger = org.slf4j.LoggerFactory.getLogger("Producer")
 
     init {
         val producerProps = Properties()
@@ -23,12 +24,12 @@ class Producer {
     }
 
     fun sendSensorData(data:String){
-        val record = ProducerRecord(topic,1,"Sensor", data)
-        producer.send(record) { metadata, exception ->
+        val record = ProducerRecord(topic,Random().nextInt(0,2),"SpeedSensor", data) // Generiert eine zufällige Zahl
+        producer.send(record) { metadata, exception ->                                                 //zwischen 0 (inklusive) und 2 (exklusive)
             if (exception == null) {
-                println("Nachricht gesendet: Topic=${metadata.topic()}, Partition=${metadata.partition()}, Offset=${metadata.offset()}")
+                logger.info("Nachricht gesendet: Topic=${metadata.topic()}, Partition=${metadata.partition()}, Offset=${metadata.offset()}")
             } else {
-                println("Fehler beim Senden der Nachricht: ${exception.message}")
+                logger.error("Fehler beim Senden der Nachricht: ${exception.message}")
             }
         }
     }

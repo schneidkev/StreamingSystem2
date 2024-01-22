@@ -19,8 +19,10 @@ class AvgSpeedEvent(val timestamp: Long, val sensorId: Int, val avgSpeed: Double
 
 class SpeedDropEvent(val timestamp: Long, val sensorId: Int, val minSpeed: Double, val maxSpeed: Double, val speedDrop: Double)
 
+val logger = org.slf4j.LoggerFactory.getLogger("EsperConsumer")
 
 class AveragePrinter() : UpdateListener {
+
     override fun update(
         newEvents: Array<out EventBean>?,
         oldEvents: Array<out EventBean>?,
@@ -31,9 +33,8 @@ class AveragePrinter() : UpdateListener {
             val timestamp = event.get("timestamp") as Long
             val sensorId = event.get("sensorId") as Int
             val speeds = event.get("avgSpeed") as Double
-            println("AverageSpeed: $timestamp;$sensorId;$speeds")
+            logger.debug("AverageSpeed: $timestamp;$sensorId;$speeds")
         }
-        println("")
     }
 
 }
@@ -51,9 +52,8 @@ class DropPrinter() : UpdateListener {
             val minSpeed = event.get("minSpeed") as Double
             val maxSpeed = event.get("maxSpeed") as Double
             val speedDrop = event.get("speedDifference") as Double
-            println("SpeedDrop: $timestamp;$sensorId;$minSpeed;$maxSpeed;$speedDrop")
+            logger.info("SpeedDrop: $timestamp;$sensorId;$minSpeed;$maxSpeed;$speedDrop")
         }
-        println("")
     }
 
 }
@@ -85,7 +85,9 @@ class EsperConsumer(){
     init{
         val avgSpeedEPL = "@name ('avgspeed') insert into AvgSpeedEvent select timestamp, sensorId, avg(speed) as avgSpeed from IndividualSpeedEvent.win:ext_timed(timestamp, 30 sec) group by sensorId; \n"
         val cleanData = "@name ('cleandata') select * from SensorEvent(speeds.allOf(v => v > 0)); \n"
-        val trafficJamEPL = "@name ('speeddrop') insert into SpeedDropEvent SELECT timestamp, sensorId, min(avgSpeed) as minSpeed, max(avgSpeed) as maxSpeed, max(avgSpeed) - min(avgSpeed) as speedDifference FROM AvgSpeedEvent.win:ext_timed(timestamp, 30 sec) group by sensorId having max(avgSpeed) - min(avgSpeed) > 20; \n"
+        val trafficJamEPL = "@name ('speeddrop') insert into SpeedDropEvent SELECT timestamp, sensorId, min(avgSpeed) as minSpeed, max(avgSpeed) as maxSpeed, max(avgSpeed) - min(avgSpeed) as speedDifference " +
+                "FROM AvgSpeedEvent.win:ext_timed(timestamp, 30 sec) group by sensorId having max(avgSpeed) - min(avgSpeed) > 20; \n"
+
         val configuration = Configuration()
         configuration.common.addEventType("SensorEvent", SensorEvent::class.java.name)
         configuration.common.addEventType("AvgSpeedEvent", AvgSpeedEvent::class.java.name)
@@ -116,12 +118,25 @@ class EsperConsumer(){
     }
 
     fun testWindow(){
-        val goalTime = Duration.ofSeconds(32).toMillis() + System.currentTimeMillis()
+        val goalTime = Duration.ofSeconds(30).toMillis() + System.currentTimeMillis()
+
         while(System.currentTimeMillis()<goalTime){
             val sensorData = SensorEvent(Instant.now(), 1, listOf(1.0,1.0,1.0))
             runtime.eventService.sendEventBean(sensorData, "SensorEvent")
             Thread.sleep(1000)
         }
+        val sensorData = SensorEvent(Instant.now(), 1, listOf(2.0,2.0,2.0))
+        runtime.eventService.sendEventBean(sensorData, "SensorEvent")
+    }
+    fun testWindow2(){
+        val goalTime = Duration.ofSeconds(30).toMillis() + System.currentTimeMillis()
+        val sensorData = SensorEvent(Instant.now(), 1, listOf(1.0,1.0,1.0))
+        runtime.eventService.sendEventBean(sensorData, "SensorEvent")
+        while(System.currentTimeMillis()<goalTime){
+            Thread.sleep(1000)
+        }
+        val sensorData2 = SensorEvent(Instant.now(), 1, listOf(2.0,2.0,2.0))
+        runtime.eventService.sendEventBean(sensorData2, "SensorEvent")
     }
     fun testAnomaly(){
         val goalTime = Duration.ofSeconds(32).toMillis() + System.currentTimeMillis()

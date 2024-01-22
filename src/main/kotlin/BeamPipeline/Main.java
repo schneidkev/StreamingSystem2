@@ -66,6 +66,7 @@ public class Main {
                         KV<String, Iterable<Double>> element = c.element();
                         int count = 0;
                         double sum = 0;
+                        assert element != null;
                         for (Double value : element.getValue()) {
                             sum += value;
                             count++;

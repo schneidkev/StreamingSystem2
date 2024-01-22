@@ -1,6 +1,7 @@
 package Consumer
 
 import org.apache.kafka.clients.consumer.KafkaConsumer
+import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 import java.util.*
@@ -12,6 +13,7 @@ class Consumer {
     val bootstrapServers = "localhost:9092"
     private val consumer: KafkaConsumer<String, String>
     val averageMap: MutableMap<String,MutableMap<String,Double>> = mutableMapOf()
+    private val logger = LoggerFactory.getLogger("Consumer")
     init{
         val props = Properties()
         props.setProperty("bootstrap.servers", bootstrapServers)
@@ -21,18 +23,12 @@ class Consumer {
         props.setProperty("key.deserializer","org.apache.kafka.common.serialization.StringDeserializer")
         props.setProperty("group.instance.id", "numberMovesList")
         props.setProperty("value.deserializer","org.apache.kafka.common.serialization.StringDeserializer")
+        //props.setProperty("auto.offset.reset","earliest")
 
         consumer= KafkaConsumer(props)
         consumer.subscribe(mutableListOf(topic))
-        forceToBeginning()
     }
 
-    fun forceToBeginning(){
-        while(consumer.poll(Duration.ofSeconds(1)).isEmpty){
-            consumer.seekToBeginning(consumer.assignment())
-        }
-        consumer.seekToBeginning(consumer.assignment())
-    }
 
     fun collectDataOnEventTimestamp(){
         consumer.seekToBeginning(consumer.assignment())
@@ -42,15 +38,17 @@ class Consumer {
             val records = consumer.poll(Duration.ofSeconds(1))
             for (record in records){
                 val parts = record.value().split(";")
-                if(sensorDataList.isEmpty()){
-                    startTimestamp = Instant.parse(parts[0])
+                if(parts.drop(2).any { it.isNotEmpty() } && parts.drop(2).all { it.toDouble() > 0 }) {
+                    if (sensorDataList.isEmpty()) {
+                        startTimestamp = Instant.parse(parts[0])
+                    }
+                    sensorDataList.add(SensorData(parts[0], parts[1], parts.drop(2).map { it.toDouble() * 3.6 }))
+
+                    logger.info("Topic: ${record.topic()}, Partition: ${record.partition()}, Offset: ${record.offset()}, Key: ${record.key()}, Value: ${record.value()}")
                 }
-                sensorDataList.add(SensorData(parts[0],parts[1],parts.drop(2).filter{it.isNotEmpty()}.filter{it.toDouble() > 0}.map{it.toDouble() * 3.6}))
-                println("Topic: ${record.topic()}, Partition: ${record.partition()}, Offset: ${record.offset()}, Key: ${record.key()}, Value: ${record.value()}")
             }
-            if(records.isEmpty) continue
+            if(records.isEmpty ||sensorDataList.isEmpty()) continue
             if(Instant.parse(sensorDataList.sortedBy { it.timestamp }.last().timestamp) >= startTimestamp.plusSeconds(30)){ // damit Daten in der Vergangenheit sowie Daten die noch kommen immer in 30 Sekunden Fenster eingelagert werden können
-                //groupTimeWindow(sensorDataList)
                 startTimestamp.plusSeconds(30)
                 groupTimeWindow(sensorDataList)
                 sensorDataList.clear()
@@ -64,16 +62,17 @@ class Consumer {
         val sortedList = list.sortedBy { it.timestamp }
         var startTimestamp = Instant.parse(sortedList.first().timestamp)
         do {
-            println(startTimestamp)
-            val test = list.filter { startTimestamp.isBefore(Instant.parse(it.timestamp))  && startTimestamp.plusSeconds(30).isAfter(Instant.parse(it.timestamp)) }
-            if(test.isEmpty()){
-                startTimestamp = Instant.parse(list.sortedBy { it.timestamp }.filter { Instant.parse(it.timestamp) > startTimestamp }.first().timestamp)
+            logger.debug(startTimestamp.toString())
+            val windowData = list.filter { startTimestamp.isBefore(Instant.parse(it.timestamp))  && startTimestamp.plusSeconds(30).isAfter(Instant.parse(it.timestamp)) }
+            /*if(windowData.isEmpty()){ // Falls es große Abstände zwischen den Daten gibt, werden die Fenster übersprungen, und der timestamp aus den nächsten Timestamps genutzt
+                startTimestamp = Instant.parse(list.sortedBy { it.timestamp }
+                    .first { Instant.parse(it.timestamp) > startTimestamp }.timestamp)
                 continue
-            }
-            val average = test.groupBy { it.sensorID }.mapValues {(_, sensorDataList) -> sensorDataList.flatMap { it.sensorValue }.average() }.filter { !it.value.isNaN() }
+            }*/
+            val average = windowData.groupBy { it.sensorID }.mapValues { (_, sensorDataList) -> sensorDataList.flatMap { it.sensorValue }.average() }.filter { !it.value.isNaN() }
             averageMap.put(startTimestamp.toString(),average.toMutableMap())
             startTimestamp = startTimestamp.plusSeconds(30)
-            println(average)
+            logger.debug(average.toString())
         } while(Instant.parse(sortedList.last().timestamp)>startTimestamp)
     }
 
@@ -87,16 +86,15 @@ class Consumer {
             for (record in records){
                 val parts = record.value().split(";")
                 sensorDataList.add(SensorData(parts[0],parts[1],parts.drop(2).map { it.toDouble() }))
-                println("Topic: ${record.topic()}, Partition: ${record.partition()}, Offset: ${record.offset()}, Key: ${record.key()}, Value: ${record.value()}")
+                logger.info("Topic: ${record.topic()}, Partition: ${record.partition()}, Offset: ${record.offset()}, Key: ${record.key()}, Value: ${record.value()}")
             }
-            val group = sensorDataList.groupBy { it.sensorID }
             val average = sensorDataList.groupBy { it.sensorID }.mapValues {(_, sensorDataList) -> sensorDataList.flatMap { it.sensorValue }.average() }
-            println(average)
+            logger.debug("Average values:\n {}", average)
         }
     }
 
     fun getSensorAverage(){
-        averageMap.map { println(it) }
+        averageMap.map { logger.info(it.toString()) }
     }
 
     companion object {
