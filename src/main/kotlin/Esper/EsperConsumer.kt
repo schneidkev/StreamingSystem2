@@ -2,6 +2,7 @@ package Esper
 
 import com.espertech.esper.common.client.EventBean
 import com.espertech.esper.common.client.configuration.Configuration
+import com.espertech.esper.common.client.scopetest.EPAssertionUtil
 import com.espertech.esper.compiler.client.CompilerArguments
 import com.espertech.esper.compiler.client.EPCompilerProvider
 import com.espertech.esper.runtime.client.EPRuntime
@@ -11,6 +12,8 @@ import com.espertech.esper.runtime.client.UpdateListener
 import java.time.Duration
 import java.time.Instant
 
+val logger = org.slf4j.LoggerFactory.getLogger("EsperConsumer")
+
 
 class SensorEvent(val timestamp: Instant, val sensorId: Int, val speeds: List<Double>)
 class IndividualSpeedEvent(val timestamp: Long, val sensorId: Int, val speed: Double)
@@ -19,7 +22,6 @@ class AvgSpeedEvent(val timestamp: Long, val sensorId: Int, val avgSpeed: Double
 
 class SpeedDropEvent(val timestamp: Long, val sensorId: Int, val minSpeed: Double, val maxSpeed: Double, val speedDrop: Double)
 
-val logger = org.slf4j.LoggerFactory.getLogger("EsperConsumer")
 
 class AveragePrinter() : UpdateListener {
 
@@ -114,61 +116,6 @@ class EsperConsumer(){
         if(parts[2].isNotEmpty()){
             val sensorData = SensorEvent(Instant.parse(parts[0]), parts[1].toInt(), parts.drop(2).map { it.toDouble() })
             runtime.eventService.sendEventBean(sensorData, "SensorEvent")
-        }
-    }
-
-    fun testWindow(){
-        val goalTime = Duration.ofSeconds(30).toMillis() + System.currentTimeMillis()
-
-        while(System.currentTimeMillis()<goalTime){
-            val sensorData = SensorEvent(Instant.now(), 1, listOf(1.0,1.0,1.0))
-            runtime.eventService.sendEventBean(sensorData, "SensorEvent")
-            Thread.sleep(1000)
-        }
-        val sensorData = SensorEvent(Instant.now(), 1, listOf(2.0,2.0,2.0))
-        runtime.eventService.sendEventBean(sensorData, "SensorEvent")
-    }
-    fun testWindow2(){
-        val goalTime = Duration.ofSeconds(30).toMillis() + System.currentTimeMillis()
-        val sensorData = SensorEvent(Instant.now(), 1, listOf(1.0,1.0,1.0))
-        runtime.eventService.sendEventBean(sensorData, "SensorEvent")
-        while(System.currentTimeMillis()<goalTime){
-            Thread.sleep(1000)
-        }
-        val sensorData2 = SensorEvent(Instant.now(), 1, listOf(2.0,2.0,2.0))
-        runtime.eventService.sendEventBean(sensorData2, "SensorEvent")
-    }
-    fun testAnomaly(){
-        val goalTime = Duration.ofSeconds(32).toMillis() + System.currentTimeMillis()
-        while(System.currentTimeMillis()<goalTime){
-            val sensorData = SensorEvent(Instant.now(), 1, listOf())
-            val sensordata2 = SensorEvent(Instant.now(), 1, listOf(-1.0,1.0,1.0))
-            val sensordata3 = SensorEvent(Instant.now(), 1, listOf(1.0,1.0,1.0))
-            runtime.eventService.sendEventBean(sensorData, "SensorEvent")
-            runtime.eventService.sendEventBean(sensordata2, "SensorEvent")
-            runtime.eventService.sendEventBean(sensordata3, "SensorEvent")
-            Thread.sleep(1000)
-        }
-    }
-
-    fun testSpeedDrop(){
-        val goalTime = Duration.ofSeconds(32).toMillis() + System.currentTimeMillis()
-        while(System.currentTimeMillis()<goalTime){
-            val sensorData = SensorEvent(Instant.now(), 1, listOf(1.0))
-            val sensordata2 = SensorEvent(Instant.now(), 1, listOf(20.0))
-            runtime.eventService.sendEventBean(sensorData, "SensorEvent")
-            runtime.eventService.sendEventBean(sensordata2, "SensorEvent")
-            Thread.sleep(1000)
-        }
-    }
-    fun testSpeedDropBySensorId(){
-        val goalTime = Duration.ofSeconds(32).toMillis() + System.currentTimeMillis()
-        while(System.currentTimeMillis()<goalTime){
-            val sensorData = SensorEvent(Instant.now(), 1, listOf(1.0))
-            val sensordata2 = SensorEvent(Instant.now(), 2, listOf(20.0))
-            runtime.eventService.sendEventBean(sensorData, "SensorEvent")
-            runtime.eventService.sendEventBean(sensordata2, "SensorEvent")
-            Thread.sleep(1000)
         }
     }
     companion object {
