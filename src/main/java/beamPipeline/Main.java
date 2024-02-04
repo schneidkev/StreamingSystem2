@@ -1,4 +1,4 @@
-package BeamPipeline;
+package beamPipeline;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.kafka.KafkaIO;
 import org.apache.beam.sdk.io.kafka.KafkaRecord;
@@ -12,10 +12,15 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class Main {
+
+    static Map<String, Map<String,Double>> averageMap = new HashMap<>();
+
 
     public static void buildPipeline(Pipeline pipeline) {
         pipeline.apply(
@@ -26,7 +31,7 @@ public class Main {
                                 .withValueDeserializer(StringDeserializer.class)
                 )
                 .apply(WithTimestamps.of(new ExtractTimestampFunction())
-                        .withAllowedTimestampSkew(Duration.standardSeconds(2)))
+                        .withAllowedTimestampSkew(Duration.standardSeconds(5)))
                 .apply(Filter.by(new FilterFunction()))
                 .apply("Divide",ParDo.of(new DivideFunction()))
                 .apply("MStoKMH",ParDo.of(new ConvertMsToKmhFunction()))
@@ -89,6 +94,33 @@ public class Main {
             Double average = values.stream().mapToDouble(Double::doubleValue).average().getAsDouble();
             System.out.println("Average for " + element.getKey() + ": " + average);
             c.output(KV.of(element.getKey(), average));
+
+            Map<String, Double> currentMap = averageMap.get(c.timestamp().toString());
+            if (currentMap != null) {
+                currentMap.put(element.getKey(), average);
+            } else {
+                currentMap = new HashMap<>();
+                currentMap.put(element.getKey(), average);
+                averageMap.put(c.timestamp().toString(), currentMap);
+            }
+            getRouteAverageSpeed();
         }
+    }
+    public static void getRouteAverageSpeed() {
+        Map<String, Double> routeAverage = new HashMap<>();
+        for (Map.Entry<String, Map<String, Double>> entry : averageMap.entrySet()) {
+            String key = entry.getKey();
+            Map<String, Double> value = entry.getValue();
+            double sum = value.values().stream().mapToDouble(Double::doubleValue).sum();
+            double average = value.isEmpty() ? 0.0 : sum / value.size();
+            routeAverage.put(key, average);
+        }
+        System.out.println("Route Average:");
+        for (Map.Entry<String, Double> entry : routeAverage.entrySet()) {
+            String key = entry.getKey();
+            double average = entry.getValue();
+            System.out.print("Time: " + key + ", Average: " + average + " |");
+        }
+        System.out.println("-------------------------------------------------");
     }
 }

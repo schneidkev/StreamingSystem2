@@ -74,6 +74,15 @@ class Consumer {
             startTimestamp = startTimestamp.plusSeconds(30)
             logger.debug(average.toString())
         } while(Instant.parse(sortedList.last().timestamp)>startTimestamp)
+        getRouteAverageSpeed()
+    }
+
+    fun getRouteAverageSpeed(){
+        val routeAverage = averageMap.mapValues { (key, value) -> value.values.sum().let {
+            sum ->
+            if(value.isNotEmpty()) sum / value.size else 0.0
+        }  }
+        logger.info("Route Average: $routeAverage")
     }
 
     fun collectDataRealTime(){

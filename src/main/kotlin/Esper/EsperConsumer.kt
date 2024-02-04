@@ -22,6 +22,7 @@ class AvgSpeedEvent(val timestamp: Long, val sensorId: Int, val avgSpeed: Double
 
 class SpeedDropEvent(val timestamp: Long, val sensorId: Int, val minSpeed: Double, val maxSpeed: Double, val speedDrop: Double)
 
+val averageMap: MutableMap<String,MutableMap<String,Double>> = mutableMapOf()
 
 class AveragePrinter() : UpdateListener {
 
@@ -36,9 +37,24 @@ class AveragePrinter() : UpdateListener {
             val sensorId = event.get("sensorId") as Int
             val speeds = event.get("avgSpeed") as Double
             logger.debug("AverageSpeed: $timestamp;$sensorId;$speeds")
+
+            if (averageMap.containsKey(Instant.ofEpochMilli(timestamp).toString())) {
+                averageMap[Instant.ofEpochMilli(timestamp).toString()]?.put(sensorId.toString(), speeds)
+            } else {
+                averageMap[Instant.ofEpochMilli(timestamp).toString()] = mutableMapOf(sensorId.toString() to speeds)
+            }
+            getRouteAverageSpeed()
         }
     }
 
+}
+
+fun getRouteAverageSpeed(){
+    val routeAverage = averageMap.mapValues { (key, value) -> value.values.sum().let {
+            sum ->
+        if(value.isNotEmpty()) sum / value.size else 0.0
+    }  }
+    logger.info("Route Average: $routeAverage")
 }
 
 class DropPrinter() : UpdateListener {

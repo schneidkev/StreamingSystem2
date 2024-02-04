@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
+    java
     kotlin("jvm") version "1.9.20"
     application
 }
@@ -27,6 +28,7 @@ dependencies {
     implementation("com.espertech:esper-common:${esperVersion}")
     implementation("com.espertech:esper-compiler:${esperVersion}")
     implementation("com.espertech:esper-runtime:${esperVersion}")
+    implementation(kotlin("stdlib-jdk8"))
 
 }
 
@@ -37,7 +39,10 @@ tasks.test {
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "19"
 }
-
-application {
-    mainClass.set("BeamPipeline.MainKt")
+sourceSets {
+    main {
+        kotlin.srcDirs("src/main/kotlin") 
+        java.srcDirs("src/main/java")
+    }
 }
+

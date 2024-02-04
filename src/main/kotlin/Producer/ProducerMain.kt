@@ -12,8 +12,8 @@ fun main(args: Array<String>) {
 
     val goalTime = Duration.ofSeconds(40).toMillis() + System.currentTimeMillis()
     while(System.currentTimeMillis()<goalTime) {
-        Producer.instance.sendSensorData(generateTestData(2, 3, 0.0, 20.0,1,2, 0.1, 0.08))
-        //EsperConsumer.instance.sendData(data)
+        //Producer.instance.sendSensorData(generateTestData(2, 3, 0.0, 20.0,1,2, 0.1, 0.08))
+        EsperConsumer.instance.sendData(generateTestData(2, 3, 0.0, 20.0,1,2, 0.1, 0.08))
     }
 
     readln()
